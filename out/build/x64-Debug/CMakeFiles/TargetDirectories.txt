@@ -1,4 +1,0 @@
-C:/Users/lifelongwar/source/repos/baowendin/Lab7/out/build/x64-Debug/CMakeFiles/edit_cache.dir
-C:/Users/lifelongwar/source/repos/baowendin/Lab7/out/build/x64-Debug/CMakeFiles/Main.dir
-C:/Users/lifelongwar/source/repos/baowendin/Lab7/out/build/x64-Debug/CMakeFiles/Server.dir
-C:/Users/lifelongwar/source/repos/baowendin/Lab7/out/build/x64-Debug/CMakeFiles/rebuild_cache.dir

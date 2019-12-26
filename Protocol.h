@@ -1,5 +1,5 @@
 #pragma once
-#define MAXSIZE 500;
+#define MAXSIZE 500
 struct PacketHeader
 {
 	int	pSize;
