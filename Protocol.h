@@ -1,36 +1,56 @@
 #pragma once
-#define MAXSIZE 500
-struct PacketHeader
-{
-	int	pSize;
-	int pOpcode;
-};
 struct Packet
 {
-	PacketHeader header;
-	char Content[MAXSIZE];
+	int size;
+	uint8_t content[0];
 };
-enum Opcode 
+struct ContentWithOp
+{
+	int opcode;
+	uint8_t content[0];
+};
+enum Opcode : int
 {
 	REQUSET_TIME = 1,
 	REQUEST_NAME = 2,
 	REQUEST_LIST = 3,
 	REQUSET_MESSAGE = 4,
 	SEND_TIME = 5,
-	SNET_NAME = 6,
+	SENT_NAME = 6,
 	SEND_LIST = 7,
 	SEND_MESSAGE =8
 };
 // 时间记录用struct tm
-// 名字用 char[MAXSIZE]
-struct NameList
+struct NameFormat
+{
+	int length;
+	uint8_t name[0];
+};
+
+// 列表格式
+struct ListRequestFormatContent
+{
+	int length;
+	uint8_t* content[]; // 一堆 ListItemFormat 
+};
+struct ListItemFormat
 {
 	int id;
 	unsigned short port;
-	struct in_addr;
+	struct in_addr addr;
 };
-struct Message
+
+// 请求发送信息格式
+struct MessageRequestContent
 {
-	int id;
-	char Content[MAXSIZE];
+	int receiver_id;
+	int message_length;
+	uint8_t content[0];
+};
+
+// 发送信息格式
+struct MessageSendContent
+{
+	int message_length;
+	uint8_t content[0]; //消息内容
 };
