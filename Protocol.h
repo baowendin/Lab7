@@ -1,4 +1,7 @@
 #pragma once
+#include <stdint.h>
+#include <winsock.h>
+
 struct Packet
 {
 	int size;

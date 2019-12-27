@@ -1,11 +1,11 @@
-#include<iostream>
-#include<winsock.h>
+#include <iostream>
+#include <winsock.h>
 #include <vector>
-#include<map>
+#include <map>
 #include <thread>
-#include"Protocol.h"
-#include"readwrite.h"
-#include"serialize.h"
+#include "protocol.h"
+#include "dto.h"
+
 #pragma comment(lib,"ws2_32.lib")
 #define MAXCLIENT 10
 #define _CRT_SECURE_NO_WARNINGS
@@ -115,7 +115,7 @@ public:
 		return static_cast<uint8_t*>((void*)message);
 	}
 	static void time_operation(SOCKET socket)
-	{		
+	{
 		uint8_t* buffer;
 		int size = sizeof(time_t) + sizeof(int) * 2;
 		buffer = to_buffer(Opcode::SEND_TIME);
@@ -139,7 +139,7 @@ public:
 	{
 		uint8_t* buffer;
 		int* size;
-		
+
 	}
 };
 void initialize()
@@ -198,15 +198,15 @@ void Run(map<int, Client>* hashmap, SOCKET socket)
 		case REQUSET_TIME:
 			Operation::time_operation(socket);
 			break;
-		/*case REQUEST_NAME:
-			Operation::name_operation(socket);
-			break;
-		case REQUEST_LIST:
-			Operation::list_operation(socket, hashmap);
-			break;
-		case REQUSET_MESSAGE:
-			Operation::message_operation(socket, static_cast<int*>((void*)content->content));
-			break;*/
+			/*case REQUEST_NAME:
+				Operation::name_operation(socket);
+				break;
+			case REQUEST_LIST:
+				Operation::list_operation(socket, hashmap);
+				break;
+			case REQUSET_MESSAGE:
+				Operation::message_operation(socket, static_cast<int*>((void*)content->content));
+				break;*/
 		default:
 			cout << "Invalid selection\n";
 		}
