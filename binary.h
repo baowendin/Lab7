@@ -1,62 +1,81 @@
 #pragma once
 #include <cstdint>
 #include <iostream>
+#include <string>
 
 class BinaryWriter
 {
-	uint8_t* buffer;
-	int size;
-	int head = 0;
-public:
-	BinaryWriter(uint8_t* buffer, int size) : buffer(buffer), size(size) {};
+    uint8_t* buffer;
+    int size;
+    int head = 0;
 
-	void write(int x)
-	{
-		*(head + buffer) = x;
-		head += sizeof(int);
-	}
-	void write(char x)
-	{
-		*(head + buffer) = x;
-		head += sizeof(char);
-	}
-	void write(time_t time)
-	{
-		*(head + buffer) = time;
-		head += sizeof(int);
-	}
-	int length()
-	{
-		return head;
-	}
+    void assert_enough(int l) {
+        if (head + l > size) {
+            throw std::out_of_range("no data remain");
+        }
+    }
+
+public:
+    BinaryWriter(uint8_t* buffer, int size) : buffer(buffer), size(size) {};
+
+    template<typename T>
+    void write(const T& x) {
+        assert_enough(sizeof(T));
+        *(T*)(buffer + head) = x;
+        head += sizeof(T);
+    }
+
+    template<>
+    void write<std::string>(const std::string& x) {
+        write<int>(x.length());
+        int len = x.length();
+
+        assert_enough(len);
+        memcpy(buffer, x.data(), len);
+        head += len;
+    }
+
+    int length() const
+    {
+        return head;
+    }
 };
 
 class BinaryReader
 {
-	uint8_t* buffer;
-	int size;
-	int head = 0;
+    uint8_t* buffer;
+    int size;
+    int head = 0;
+
+    void assert_enough(int l) {
+        if (head + l > size) {
+            throw std::out_of_range("no data remain");
+        }
+    }
+
 public:
-	BinaryReader(uint8_t* buffer, int size) : buffer(buffer), size(size) {};
+    BinaryReader(uint8_t* buffer, int size) : buffer(buffer), size(size) {};
 
-	void read(int& x)
-	{
-		x = *(buffer + head);
-		head += sizeof(int);
-	}
+    template<typename T>
+    void read(T& x) {
+        assert_enough(sizeof(T));
+        x = *(T*)(buffer + head);
+        head += sizeof(T);
+    }
 
-	void read(time_t& time)
-	{
-		time = *(buffer + head);
-		head += sizeof(time_t);
-	}
-	void read(char& c)
-	{
-		c = *(buffer + head);
-		head += sizeof(char);
-	}
-	int length()
-	{
-		return head;
-	}
+    template<>
+    void read<std::string>(std::string& x) {
+        int len;
+        read(len);
+
+        assert_enough(len);
+        x.resize(len, 0);
+        memcpy(x.data(), buffer + head, len);
+        head += len;
+    }
+
+    int length() const
+    {
+        return head;
+    }
 };
