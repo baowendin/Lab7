@@ -22,7 +22,7 @@ struct Message
 	uint8_t content[0];
 };
 class Operation;
-void Run(map<int, Client>* hashmap, SOCKET socket);
+void Run(Server* server, SOCKET socket);
 class Server
 {
 private:
@@ -58,36 +58,41 @@ public:
 			count++;
 			SOCKET new_client_socket = accept(server_socket, NULL, NULL);
 			struct Client temp_client;
-			hashmap.insert(pair<int, struct Client>(count, temp_client));
 			temp_client.socket = new_client_socket;
-			temp_client.thread = new thread(Run, &hashmap, new_client_socket);
+			temp_client.thread = new thread(Run, this, new_client_socket);
+			hashmap.insert(pair<int, struct Client>(count, temp_client));			
 		}
 	}
 };
 class Operation
 {
 public:
-	static uint8_t* to_buffer(int op)
+	static uint8_t* to_buffer(int op,int& size)
 	{
 		time_t timep;
 		time(&timep);
-		SendTime sendtime(timep);
-		struct Message* message = (struct Message*)malloc(sizeof(int) * 2 + sizeof(time_t));
+		SendTime send_time(timep);
+		size = sizeof(int) * 2 + sizeof(time_t);
+		struct Message* message = (struct Message*)malloc(size);
 		message->size = sizeof(int) + sizeof(time_t);
 		message->opcode = op;
 		BinaryWriter writer(message->content, sizeof(time_t));
-		sendtime.serialize(writer);
+		send_time.serialize(writer);
 		return static_cast<uint8_t*>((void*)message);
 	}
-	static uint8_t* to_buffer(int op, char* name)
+	static uint8_t* to_buffer(int op, string name, int& size)
 	{
-		struct Message* message = (struct Message*)malloc(sizeof(int) * 2 + strlen(name) * sizeof(char));
-		//message->size = sizeof(int) + strlen(name) * sizeof(char);
-		//message->opcode = op;
-		//strcpy((char*)message->content, name);
+		
+		SendName send_name(name);
+		size = sizeof(int) * 2 + send_name.get_size();
+		struct Message* message = (struct Message*)malloc(size);
+		message->size = send_name.get_size() + sizeof(int);
+		message->opcode = op;
+		BinaryWriter writer(message->content, message->size);
+		send_name.serialize(writer);
 		return static_cast<uint8_t*>((void*)message);
 	}
-	static uint8_t* to_buffer(int op, map<int, struct Client>* hashmap, int* size)
+	/*static uint8_t* to_buffer(int op, map<int, struct Client>* hashmap, int* size)
 	{
 		struct Message* message = (struct Message*)malloc(sizeof(int) * 3 + hashmap->size() * sizeof(ListItemFormat));
 		message->size = sizeof(int) * 2 + hashmap->size() * sizeof(ListItemFormat);
@@ -113,28 +118,28 @@ public:
 			bias += sizeof(ListItemFormat);
 		}
 		return static_cast<uint8_t*>((void*)message);
-	}
+	}*/
 	static void time_operation(SOCKET socket)
 	{
 		uint8_t* buffer;
-		int size = sizeof(time_t) + sizeof(int) * 2;
-		buffer = to_buffer(Opcode::SEND_TIME);
+		int size;
+		buffer = to_buffer(Opcode::SEND_TIME,size);
 		send(socket, static_cast<char*>((void*)buffer), size, 0);
 	}
 	static void name_operation(SOCKET socket)
 	{
 		uint8_t* buffer;
-		int size = sizeof(strlen(Server::name) * sizeof(char) + sizeof(int) * 2);
-		buffer = to_buffer(Opcode::SENT_NAME, Server::name);
+		int size;
+		buffer = to_buffer(Opcode::SENT_NAME, Server::name,size);
 		send(socket, static_cast<char*>((void*)buffer), size, 0);
 	}
-	static void list_operation(SOCKET socket, map<int, struct Client>* hashmap)
+	/*static void list_operation(SOCKET socket, map<int, struct Client>* hashmap)
 	{
 		uint8_t* buffer;
 		int* size = new int();
 		buffer = to_buffer(Opcode::SEND_LIST, hashmap, size);
 		send(socket, static_cast<char*>((void*)buffer), *size, 0);
-	}
+	}*/
 	static void message_operation(SOCKET socket, int* id)
 	{
 		uint8_t* buffer;
@@ -164,7 +169,7 @@ void initialize()
 		cout << "套接字库版本正确！" << endl;
 	}
 }
-void Run(map<int, Client>* hashmap, SOCKET socket)
+void Run(Server *server, SOCKET socket)
 {
 	int8_t buffer[10000];
 	while (1)
@@ -198,10 +203,10 @@ void Run(map<int, Client>* hashmap, SOCKET socket)
 		case REQUSET_TIME:
 			Operation::time_operation(socket);
 			break;
-			/*case REQUEST_NAME:
+		case REQUEST_NAME:
 				Operation::name_operation(socket);
 				break;
-			case REQUEST_LIST:
+			/*case REQUEST_LIST:
 				Operation::list_operation(socket, hashmap);
 				break;
 			case REQUSET_MESSAGE:
@@ -217,6 +222,5 @@ int main()
 	initialize();
 	Server server;
 	server.Work();
-	SOCKET SeverSocket = socket(AF_INET, SOCK_STREAM, 0);
 
 }
