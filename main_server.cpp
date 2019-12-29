@@ -58,9 +58,9 @@ public:
 			count++;
 			SOCKET new_client_socket = accept(server_socket, NULL, NULL);
 			struct Client temp_client;
-			hashmap.insert(pair<int, struct Client>(count, temp_client));
 			temp_client.socket = new_client_socket;
 			temp_client.thread = new thread(Run, this, new_client_socket);
+			hashmap.insert(pair<int, struct Client>(count, temp_client));			
 		}
 	}
 };
@@ -92,7 +92,7 @@ public:
 		send_name.serialize(writer);
 		return static_cast<uint8_t*>((void*)message);
 	}
-	static uint8_t* to_buffer(int op, map<int, struct Client>* hashmap, int* size)
+	/*static uint8_t* to_buffer(int op, map<int, struct Client>* hashmap, int* size)
 	{
 		struct Message* message = (struct Message*)malloc(sizeof(int) * 3 + hashmap->size() * sizeof(ListItemFormat));
 		message->size = sizeof(int) * 2 + hashmap->size() * sizeof(ListItemFormat);
@@ -118,7 +118,7 @@ public:
 			bias += sizeof(ListItemFormat);
 		}
 		return static_cast<uint8_t*>((void*)message);
-	}
+	}*/
 	static void time_operation(SOCKET socket)
 	{
 		uint8_t* buffer;
@@ -133,13 +133,13 @@ public:
 		buffer = to_buffer(Opcode::SENT_NAME, Server::name,size);
 		send(socket, static_cast<char*>((void*)buffer), size, 0);
 	}
-	static void list_operation(SOCKET socket, map<int, struct Client>* hashmap)
+	/*static void list_operation(SOCKET socket, map<int, struct Client>* hashmap)
 	{
 		uint8_t* buffer;
 		int* size = new int();
 		buffer = to_buffer(Opcode::SEND_LIST, hashmap, size);
 		send(socket, static_cast<char*>((void*)buffer), *size, 0);
-	}
+	}*/
 	static void message_operation(SOCKET socket, int* id)
 	{
 		uint8_t* buffer;
