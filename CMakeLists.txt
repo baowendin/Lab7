@@ -8,6 +8,11 @@ set(src
 	binary
 )
 
+set(src_client
+
+)
+
 add_executable(Main main_wtf ${src})
 add_executable(Server main_server ${src})
 add_executable(Serialize main_serialize_test ${src})
+add_executable(Client main_client ${src_client})
