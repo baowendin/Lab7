@@ -18,6 +18,8 @@ struct Client
     thread* thread;
 };
 
+class Server;
+
 void thread_entry(Server* server, SOCKET socket);
 
 class Server
