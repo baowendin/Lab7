@@ -99,9 +99,14 @@ GetNameResponse handle_request(Server* server, GetNameRequest req) {
 
 GetTimeResponse handle_request(Server* server, GetTimeRequest req) {
     // TODO
-    return GetTimeResponse();
+    GetTimeResponse response;
+    response.time = time(0);
+    return response;
 }
+/*GetListResponse handle_request(Server* server,GetListRequest req)
+{
 
+}*/
 #define OPCODE_CASE(op, req_type) case Opcode::##op##: { \
 		req_type req; \
 		req.deserialize(reader); \

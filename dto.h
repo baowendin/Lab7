@@ -1,6 +1,6 @@
 #pragma once
 #include "binary.h"
-
+#include<vector>
 class ISerializable {
 public:
     virtual void serialize(BinaryWriter& writer) {}
@@ -29,4 +29,23 @@ struct GetNameResponse : ISerializable {
     void deserialize(BinaryReader& reader) {
         reader.read(name);
     }
+};
+struct GetListRequest : ISerializable {};
+struct GetListResponse : ISerializable {
+    struct item
+    {
+        int id;
+        // ¶Ë¿Ú
+        // µØÖ·
+    };
+    std::vector<item> v;
+    void serialize(BinaryWriter& writer)
+    {
+        writer.write(v);     
+    }
+    void deserialize(BinaryReader& reader)
+    {
+
+    }
+
 };
