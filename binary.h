@@ -32,6 +32,7 @@ class BinaryWriter
 public:
     BinaryWriter(uint8_t* buffer, int size) : buffer(buffer), size(size) {};
 
+    // 基础类型
     template<typename T, std::enable_if_t<std::is_trivially_copyable<T>::value, bool>>
     void write(const T& x) {
         assert_enough(sizeof(T));
@@ -45,6 +46,7 @@ public:
         head += len;
     }
 
+    // 可序列化类型
     template<typename T, std::size_t = sizeof(Serializer<T>)>
     void write(const T& t) {
         Serializer<T>().serialize(*this, t);
@@ -73,6 +75,7 @@ class BinaryReader
 public:
     BinaryReader(uint8_t* buffer, int size) : buffer(buffer), size(size) {};
 
+    // 基础类型
     template<typename T, std::enable_if_t<std::is_trivially_copyable<T>::value, bool>>
     void read(T& x) {
         assert_enough(sizeof(T));
@@ -86,6 +89,7 @@ public:
         head += len;
     }
 
+    // 可序列化类型
     template<typename T, std::size_t = sizeof(Serializer<T>)>
     void read(T& t) {
         Serializer<T>().deserialize(*this, t);
