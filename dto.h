@@ -1,5 +1,6 @@
 #pragma once
 #include "binary.h"
+#include <winsock.h>
 #include<vector>
 class ISerializable {
 public:
@@ -30,15 +31,20 @@ struct GetNameResponse : ISerializable {
         reader.read(name);
     }
 };
+
+struct ListItem
+{
+    int id;
+    char* addr;
+    int port;
+    // 端口
+    // 地址
+};
+
 struct GetListRequest : ISerializable {};
 struct GetListResponse : ISerializable {
-    struct item
-    {
-        int id;
-        // 端口
-        // 地址
-    };
-    std::vector<item> v;
+
+    std::vector<ListItem> v;
     void serialize(BinaryWriter& writer)
     {
         writer.write(v);     
@@ -48,4 +54,37 @@ struct GetListResponse : ISerializable {
 
     }
 
+};
+
+struct GetMessageRequest : ISerializable
+{
+    int id;
+    int length;
+    std::string str;
+    void serialize(BinaryWriter& writer)
+    {
+    }
+    void deserialize(BinaryReader& reader)
+    {
+
+    }
+};
+
+struct GetMessageResponse : ISerializable
+{
+    int length;
+    std::string str;
+    SOCKET socket;
+    void serialize(BinaryWriter& writer)
+    {
+    }
+    void deserialize(BinaryReader& reader)
+    {
+
+    }
+};
+
+struct GetReturnInfo : ISerializable 
+{
+    bool is_send;
 };

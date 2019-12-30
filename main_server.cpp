@@ -1,4 +1,4 @@
-#include <iostream>
+﻿#include <iostream>
 #include <winsock.h>
 #include <vector>
 #include <map>
@@ -27,9 +27,9 @@ class Server
 private:
     SOCKET server_socket;
     struct sockaddr_in server_addr;
-    map<int, Client> hashmap;
 public:
     const char* name = "test_name";
+    map<int, Client> hashmap;
    
     Server()
     {
@@ -40,7 +40,7 @@ public:
             return;
         }
         int optval = 1;
-        /* ��Ҳ��֪�������ʲô�õ�
+        /* 我也不知道这个干什么用的
         if (setsockopt(ServerSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&optval, sizeof(int)) < 0)
             perror("Set Socket Error:");
         */
@@ -58,7 +58,7 @@ public:
         {            
             count++;
             SOCKET new_client_socket = accept(server_socket, NULL, NULL);
-            cout << "�����������ӿ��������ǵ�"<<count<<"��!"<<endl;
+            cout << "服务器出来接客啦！这是第"<<count<<"个!"<<endl;
             Client temp_client;
             temp_client.socket = new_client_socket;
             temp_client.thread = new thread(thread_entry, this, new_client_socket);
@@ -69,24 +69,24 @@ public:
 
 void initialize()
 {
-    /* �����׽��ֿ� */
-    WORD w_req = MAKEWORD(2, 2);//�汾��
+    /* 加载套接字库 */
+    WORD w_req = MAKEWORD(2, 2);//版本号
     WSADATA wsadata;
     int err;
     err = WSAStartup(w_req, &wsadata);
     if (err != 0) {
-        cout << "��ʼ���׽��ֿ�ʧ�ܣ�" << endl;
+        cout << "初始化套接字库失败！" << endl;
     }
     else {
-        cout << "��ʼ���׽��ֿ�ɹ���" << endl;
+        cout << "初始化套接字库成功！" << endl;
     }
-    //���汾��
+    //检测版本号
     if (LOBYTE(wsadata.wVersion) != 2 || HIBYTE(wsadata.wHighVersion) != 2) {
-        cout << "�׽��ֿ�汾�Ų�����" << endl;
+        cout << "套接字库版本号不符！" << endl;
         WSACleanup();
     }
     else {
-        cout << "�׽��ֿ�汾��ȷ��" << endl;
+        cout << "套接字库版本正确！" << endl;
     }
 }
 
@@ -103,10 +103,51 @@ GetTimeResponse handle_request(Server* server, GetTimeRequest req) {
     response.time = time(0);
     return response;
 }
-/*GetListResponse handle_request(Server* server,GetListRequest req)
+GetListResponse handle_request(Server* server,GetListRequest req)
 {
+    GetListResponse response;
+    for (auto& v : server->hashmap)
+    {
+        ListItem item;
+        item.id = v.first;
+        SOCKADDR_IN sockAddr;
+        int iLen = sizeof(sockAddr);
+        getpeername(v.second.socket, (struct sockaddr*) & sockAddr, &iLen);//得到远程IP地址和端口号  注意函数参数1：此处是接受连接                                                                                                                                                                                  //socket
+        item.addr = inet_ntoa(sockAddr.sin_addr);//IP 
+        item.port = sockAddr.sin_port;       
+        response.v.push_back(item);
+    }
+    return response;
+}
+GetReturnInfo handle_request(Server* server, GetMessageRequest req)
+{
+    GetMessageResponse response;
+    GetReturnInfo info;
+    
+    if (server->hashmap.find(req.id) != server->hashmap.end())
+    {
+        info.is_send = false;
+        return info;
+    }
+    info.is_send = true;
+    response.length = req.length;
+    response.str = std::move(req.str);
+    SOCKET socket = server->hashmap.at(req.id).socket;
+    send_to_user(socket, response);
+    return info;
+}
 
-}*/
+void send_to_user(SOCKET socket, GetMessageResponse response)
+{
+    uint8_t resp_buffer[2048];
+    BinaryWriter writer(resp_buffer, 2048);
+    writer.write((int)0); // 注意：等会再写回长度
+    writer.write((int)Opcode::GET_MESSAGE);
+    response.serialize(writer);
+    *(int*)resp_buffer = writer.length();
+    send(socket, (char*)resp_buffer, writer.length(), 0);
+}
+
 #define OPCODE_CASE(op, req_type) case Opcode::##op##: { \
 		req_type req; \
 		req.deserialize(reader); \
@@ -119,14 +160,14 @@ void thread_entry(Server* server, SOCKET socket)
     while (1)
     {
         // TODO: make this better (see main_client.cpp)
-        // TODO: ����ʽ�иĶ�
+        // TODO: 包格式有改动
         int tot_size = 0;
         while (tot_size < sizeof(int))
         {
             int size = recv(socket, (char*)buffer + tot_size, sizeof(int) - tot_size, 0);
             if (size == 0)
             {
-                cout << "�ͻ��˹ر�" << endl;
+                cout << "客户端关闭" << endl;
                 return;
             }
             tot_size += size;
@@ -137,32 +178,35 @@ void thread_entry(Server* server, SOCKET socket)
             int tmp_size = recv(socket, (char*)buffer + tot_size, *size - tot_size, 0);
             if (tmp_size == 0)
             {
-                cout << "�ͻ��˹ر�" << endl;
+                cout << "客户端关闭" << endl;
                 return;
             }
             tot_size += tmp_size;
         }
-
-
         auto packet = (Packet*)buffer;
         BinaryReader reader(packet->content, packet->total_size);
 
         uint8_t resp_buffer[2048];
         BinaryWriter writer(resp_buffer, 2048);
-        writer.write((int)0); // ע�⣺�Ȼ���д�س���
-        writer.write((int)packet->op);
+        writer.write((int)0); // 注意：等会再写回长度
+        if (packet->op == Opcode::GET_MESSAGE)
+        {
+            writer.write((int)Opcode::GET_RETURN);
+        }
+        else writer.write((int)packet->op);
 
-        // �����������������handle_request
+        // 具体的请求处理在上面handle_request
         switch (packet->op) {
             OPCODE_CASE(GET_TIME, GetTimeRequest);
             OPCODE_CASE(GET_NAME, GetNameRequest);
+            OPCODE_CASE(GET_LIST, GetListRequest);
+            OPCODE_CASE(GET_MESSAGE, GetMessageRequest);
             default: {
-                cout << "����ʶ��Opcode��" << (int)packet->op << endl;
+                cout << "不认识的Opcode：" << (int)packet->op << endl;
                 return; // disconnect
             }
         }
-
-        // д�س���
+        // 写回长度       
         *(int*)resp_buffer = writer.length();
         send(socket, (char*)resp_buffer, writer.length(), 0);
     }
