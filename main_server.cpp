@@ -55,9 +55,10 @@ public:
     {
         int count = 0;
         while (1)
-        {
+        {            
             count++;
             SOCKET new_client_socket = accept(server_socket, NULL, NULL);
+            cout << "服务器出来接客啦！这是第"<<count<<"个!"<<endl;
             Client temp_client;
             temp_client.socket = new_client_socket;
             temp_client.thread = new thread(thread_entry, this, new_client_socket);
@@ -90,8 +91,10 @@ void initialize()
 }
 
 GetNameResponse handle_request(Server* server, GetNameRequest req) {
-    // TODO
-    return GetNameResponse();
+    // TODO   
+    GetNameResponse response;
+    response.name = "kami";
+    return response;
 }
 
 GetTimeResponse handle_request(Server* server, GetTimeRequest req) {
@@ -124,7 +127,6 @@ void thread_entry(Server* server, SOCKET socket)
             tot_size += size;
         }
         int* size = static_cast<int*>((void*)buffer);
-        tot_size = 0;
         while (tot_size < *size)
         {
             int tmp_size = recv(socket, (char*)buffer + tot_size, *size - tot_size, 0);

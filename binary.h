@@ -29,10 +29,9 @@ public:
     void write<std::string>(const std::string& x) {
         write<int>(x.length());
         int len = x.length();
-
         assert_enough(len);
-        memcpy(buffer, x.data(), len);
-        head += len;
+        memcpy(buffer + head, x.data(), len);
+        head += len;       
     }
 
     int length() const
