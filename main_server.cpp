@@ -108,15 +108,17 @@ GetListResponse handle_request(Server* server,GetListRequest req)
     GetListResponse response;
     for (auto& v : server->hashmap)
     {
-        ListItem item;
+        GetListResponse::ListItem item;
         item.id = v.first;
         SOCKADDR_IN sockAddr;
         int iLen = sizeof(sockAddr);
         getpeername(v.second.socket, (struct sockaddr*) & sockAddr, &iLen);//得到远程IP地址和端口号  注意函数参数1：此处是接受连接                                                                                                                                                                                  //socket
         item.addr = inet_ntoa(sockAddr.sin_addr);//IP 
+        item.length = item.addr.length();
         item.port = sockAddr.sin_port;       
         response.v.push_back(item);
     }
+    response.size = response.v.size();
     return response;
 }
 GetReturnInfo handle_request(Server* server, GetMessageRequest req)
@@ -143,7 +145,7 @@ void send_to_user(SOCKET socket, GetMessageResponse response)
     BinaryWriter writer(resp_buffer, 2048);
     writer.write((int)0); // 注意：等会再写回长度
     writer.write((int)Opcode::GET_MESSAGE);
-    response.serialize(writer);
+    writer.write(response);
     *(int*)resp_buffer = writer.length();
     send(socket, (char*)resp_buffer, writer.length(), 0);
 }

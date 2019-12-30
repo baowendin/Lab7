@@ -1,6 +1,7 @@
 #pragma once
 #include "binary.h"
 #include <vector>
+#include <winsock.h>
 
 // this looks evil
 // maybe should not be used
@@ -38,60 +39,46 @@ SERIALIZER0(GetNameRequest);
 struct GetNameResponse {
     std::string name;
 };
+SERIALIZER1(GetNameResponse, name);
 
-struct ListItem
-{
-    int id;
-    char* addr;
-    int port;
-    // 端口
-    // 地址
-};
 
-struct GetListRequest : ISerializable {};
-struct GetListResponse : ISerializable {
-
+struct GetListRequest {};
+SERIALIZER0(GetListRequest);
+struct GetListResponse {
+    struct ListItem
+    {
+        int id;
+        int length;
+        std::string addr;
+        int port;
+        // 端口
+        // 地址
+    };
+    int size;
     std::vector<ListItem> v;
-    void serialize(BinaryWriter& writer)
-    {
-        writer.write(v);     
-    }
-    void deserialize(BinaryReader& reader)
-    {
-
-    }
-
 };
+SERIALIZER4(GetListResponse::ListItem, id, length, addr, port);
+SERIALIZER2(GetListResponse, size, v);
 
-struct GetMessageRequest : ISerializable
+struct GetMessageRequest
 {
     int id;
     int length;
     std::string str;
-    void serialize(BinaryWriter& writer)
-    {
-    }
-    void deserialize(BinaryReader& reader)
-    {
 
-    }
 };
+SERIALIZER3(GetMessageRequest, id, length, str);
 
-struct GetMessageResponse : ISerializable
+struct GetMessageResponse
 {
     int length;
     std::string str;
-    SOCKET socket;
-    void serialize(BinaryWriter& writer)
-    {
-    }
-    void deserialize(BinaryReader& reader)
-    {
 
-    }
 };
+SERIALIZER2(GetMessageResponse, length, str);
 
-struct GetReturnInfo : ISerializable 
+struct GetReturnInfo
 {
     bool is_send;
 };
+SERIALIZER1(GetReturnInfo, is_send);
