@@ -7,13 +7,16 @@
 class BinaryWriter;
 class BinaryReader;
 
+// 如果要支持新类型，请进行偏特化（下方）
 template<typename T>
 struct Serializer {
-    static_assert("No Serializer<T> provided");
+    static_assert("No specialization of Serializer<T> provided");
     void serialize(BinaryWriter& bw, const T& t) {}
     void deserialize(BinaryReader& br, T& t) {}
 };
 
+// 二进制写入器
+// 注意：支持基础类型、可序列化（实现了Serializer<T>）类型的直接写入
 class BinaryWriter
 {
     uint8_t* buffer;
@@ -53,6 +56,8 @@ public:
     }
 };
 
+// 二进制读取器
+// 注意：支持基础类型、可序列化（实现了Serializer<T>）类型的直接读取
 class BinaryReader
 {
     uint8_t* buffer;
@@ -92,6 +97,8 @@ public:
     }
 };
 
+
+// 支持string的序列化
 template<>
 struct Serializer<std::string> {
     void serialize(BinaryWriter& bw, const std::string& x) {
@@ -108,6 +115,7 @@ struct Serializer<std::string> {
     }
 };
 
+// 支持vector<T>的序列化
 template<typename T>
 struct Serializer<std::vector<T>> {
     void serialize(BinaryWriter& bw, const std::vector<T>& x) {
@@ -129,8 +137,8 @@ struct Serializer<std::vector<T>> {
 };
 
 
-// this looks evil
-// maybe should not be used
+// 组合定义序列化器的辅助宏
+// looks evil, but could save boilerplate code
 #define SERIALIZER(type, ser, deser) template<> struct Serializer<type> { \
     void serialize(BinaryWriter& bw, const type& obj) { do ser while(0); } \
     void deserialize(BinaryReader& br, const type& obj) { do deser while (0); } \
