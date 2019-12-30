@@ -19,12 +19,13 @@ class InteractiveClient {
     bool _connected = false;
     SOCKET _socket;
 
-    void send_request(Opcode op, ISerializable& ser) {
+    template<typename T>
+    void send_request(Opcode op, const T& req) {
         uint8_t buffer[2048];
         BinaryWriter writer(buffer, sizeof(buffer));
         writer.write((int)0);
         writer.write((int)op);
-        ser.serialize(writer);
+        writer.write(req);
         *(int*)buffer = writer.length();
         send(_socket, (char*)buffer, writer.length(), 0);
     }
@@ -34,7 +35,7 @@ class InteractiveClient {
         switch (op) {
             case Opcode::GET_TIME: {
                 GetTimeResponse resp;
-                resp.deserialize(reader);
+                reader.read(resp);
 
                 tm* t = localtime(&resp.time);
                 char time_str[128];
@@ -45,7 +46,7 @@ class InteractiveClient {
 
             case Opcode::GET_NAME: {
                 GetNameResponse resp;
-                resp.deserialize(reader);
+                reader.read(resp);
 
                 printf("name: %s", resp.name.c_str());
                 break;
