@@ -30,7 +30,7 @@ private:
 public:
     const char* name = "test_name";
     map<int, Client> hashmap;
-   
+
     Server()
     {
         server_socket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -55,10 +55,10 @@ public:
     {
         int count = 0;
         while (1)
-        {            
+        {
             count++;
             SOCKET new_client_socket = accept(server_socket, NULL, NULL);
-            cout << "服务器出来接客啦！这是第"<<count<<"个!"<<endl;
+            cout << "服务器出来接客啦！这是第" << count << "个!" << endl;
             Client temp_client;
             temp_client.socket = new_client_socket;
             temp_client.thread = new thread(thread_entry, this, new_client_socket);
@@ -90,70 +90,69 @@ void initialize()
     }
 }
 
+template<typename T>
+void send_to_user(SOCKET socket, Opcode op, T data)
+{
+    uint8_t resp_buffer[2048];
+    BinaryWriter writer(resp_buffer, 2048);
+    writer.write((int)0); // 注意：等会再写回长度
+    writer.write((int)op);
+    writer.write(data);
+    *(int*)resp_buffer = writer.length();
+    send(socket, (char*)resp_buffer, writer.length(), 0);
+}
+
 GetNameResponse handle_request(Server* server, GetNameRequest req) {
-    // TODO   
     GetNameResponse response;
     response.name = "kami";
     return response;
 }
 
 GetTimeResponse handle_request(Server* server, GetTimeRequest req) {
-    // TODO
     GetTimeResponse response;
     response.time = time(0);
     return response;
 }
-GetListResponse handle_request(Server* server,GetListRequest req)
+
+GetListResponse handle_request(Server* server, GetListRequest req)
 {
     GetListResponse response;
-    for (auto& v : server->hashmap)
+    for (auto& [id, client] : server->hashmap)
     {
         GetListResponse::ListItem item;
-        item.id = v.first;
+        item.id = id;
         SOCKADDR_IN sockAddr;
-        int iLen = sizeof(sockAddr);
-        getpeername(v.second.socket, (struct sockaddr*) & sockAddr, &iLen);//得到远程IP地址和端口号  注意函数参数1：此处是接受连接                                                                                                                                                                                  //socket
+        int len = sizeof(sockAddr);
+        getpeername(client.socket, (struct sockaddr*) & sockAddr, &len);//得到远程IP地址和端口号  注意函数参数1：此处是接受连接                                                                                                                                                                                  //socket
         item.addr = inet_ntoa(sockAddr.sin_addr);//IP 
         item.length = item.addr.length();
-        item.port = sockAddr.sin_port;       
-        response.v.push_back(item);
+        item.port = sockAddr.sin_port;
+        response.items.push_back(item);
     }
-    response.size = response.v.size();
     return response;
 }
-GetReturnInfo handle_request(Server* server, GetMessageRequest req)
+
+SendMessageResponse handle_request(Server* server, SendMessageRequest req)
 {
-    GetMessageResponse response;
-    GetReturnInfo info;
-    
+    ReceivedMessage recv;
+    SendMessageResponse resp;
+
     if (server->hashmap.find(req.id) != server->hashmap.end())
     {
-        info.is_send = false;
-        return info;
+        resp.is_sent = false;
+        return resp;
     }
-    info.is_send = true;
-    response.length = req.length;
-    response.str = std::move(req.str);
+    resp.is_sent = true;
+    recv.str = std::move(req.str);
     SOCKET socket = server->hashmap.at(req.id).socket;
-    send_to_user(socket, response);
-    return info;
-}
-
-void send_to_user(SOCKET socket, GetMessageResponse response)
-{
-    uint8_t resp_buffer[2048];
-    BinaryWriter writer(resp_buffer, 2048);
-    writer.write((int)0); // 注意：等会再写回长度
-    writer.write((int)Opcode::GET_MESSAGE);
-    writer.write(response);
-    *(int*)resp_buffer = writer.length();
-    send(socket, (char*)resp_buffer, writer.length(), 0);
+    send_to_user(socket, Opcode::RECV_MESSAGE, move(recv));
+    return resp;
 }
 
 #define OPCODE_CASE(op, req_type) case Opcode::##op##: { \
 		req_type req; \
 		reader.read(req); \
-		auto resp = handle_request(server, req); \
+		auto resp = handle_request(server, move(req)); \
         writer.write(resp); \
 		break; }
 
@@ -192,18 +191,14 @@ void thread_entry(Server* server, SOCKET socket)
         uint8_t resp_buffer[2048];
         BinaryWriter writer(resp_buffer, 2048);
         writer.write((int)0); // 注意：等会再写回长度
-        if (packet->op == Opcode::GET_MESSAGE)
-        {
-            writer.write((int)Opcode::GET_RETURN);
-        }
-        else writer.write((int)packet->op);
+        writer.write((int)packet->op);
 
         // 具体的请求处理在上面handle_request
         switch (packet->op) {
             OPCODE_CASE(GET_TIME, GetTimeRequest);
             OPCODE_CASE(GET_NAME, GetNameRequest);
             OPCODE_CASE(GET_LIST, GetListRequest);
-            OPCODE_CASE(GET_MESSAGE, GetMessageRequest);
+            OPCODE_CASE(SEND_MESSAGE, SendMessageRequest);
             default: {
                 cout << "不认识的Opcode：" << (int)packet->op << endl;
                 return; // disconnect

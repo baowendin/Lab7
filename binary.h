@@ -148,7 +148,7 @@ struct Serializer<std::vector<T>> {
     void deserialize(BinaryReader& br, const type& obj) { do deser while (0); } \
 };
 
-#define FIELD0(p, fld)
+#define FIELD0()
 #define FIELD1(p, fld) p(obj.##fld);
 #define FIELD2(p, fld, ...) _CONCAT(FIELD1(p, fld), FIELD1(p, __VA_ARGS__))
 #define FIELD3(p, fld, ...) _CONCAT(FIELD1(p, fld), FIELD2(p, __VA_ARGS__))
@@ -158,5 +158,5 @@ struct Serializer<std::vector<T>> {
 #define SERIALIZER0(type, ...) _SERIALIZERN(0, type, __VA_ARGS__)
 #define SERIALIZER1(type, ...) _SERIALIZERN(1, type, __VA_ARGS__)
 #define SERIALIZER2(type, ...) _SERIALIZERN(2, type, __VA_ARGS__)
-#define SERIALIZER3(type, ...) _SERIALIZERN(2, type, __VA_ARGS__)
-#define SERIALIZER4(type, ...) _SERIALIZERN(2, type, __VA_ARGS__)
+#define SERIALIZER3(type, ...) _SERIALIZERN(3, type, __VA_ARGS__)
+#define SERIALIZER4(type, ...) _SERIALIZERN(4, type, __VA_ARGS__)

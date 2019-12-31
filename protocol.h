@@ -7,8 +7,8 @@ enum class Opcode : int
     GET_TIME = 1,
     GET_NAME = 2,
     GET_LIST = 3,
-    GET_MESSAGE = 4,
-    GET_RETURN = 5
+    SEND_MESSAGE = 4,
+    RECV_MESSAGE = 8,
     //REQUSET_TIME = 1,
     //REQUEST_NAME = 2,
     //REQUEST_LIST = 3,

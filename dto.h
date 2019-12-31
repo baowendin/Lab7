@@ -23,6 +23,7 @@ SERIALIZER1(GetNameResponse, name);
 
 struct GetListRequest {};
 SERIALIZER0(GetListRequest);
+
 struct GetListResponse {
     struct ListItem
     {
@@ -33,31 +34,27 @@ struct GetListResponse {
         // ¶Ë¿Ú
         // µØÖ·
     };
-    int size;
-    std::vector<ListItem> v;
+    std::vector<ListItem> items;
 };
 SERIALIZER4(GetListResponse::ListItem, id, length, addr, port);
-SERIALIZER2(GetListResponse, size, v);
+SERIALIZER1(GetListResponse, items);
 
-struct GetMessageRequest
+
+struct SendMessageRequest
 {
     int id;
-    int length;
     std::string str;
-
 };
-SERIALIZER3(GetMessageRequest, id, length, str);
+SERIALIZER2(SendMessageRequest, id, str);
 
-struct GetMessageResponse
+struct SendMessageResponse
 {
-    int length;
+    bool is_sent;
+};
+SERIALIZER1(SendMessageResponse, is_sent);
+
+struct ReceivedMessage
+{
     std::string str;
-
 };
-SERIALIZER2(GetMessageResponse, length, str);
-
-struct GetReturnInfo
-{
-    bool is_send;
-};
-SERIALIZER1(GetReturnInfo, is_send);
+SERIALIZER1(ReceivedMessage, str);
