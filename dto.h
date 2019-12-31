@@ -28,7 +28,6 @@ struct GetListResponse {
     struct ListItem
     {
         int id;
-        int length;
         std::string addr;
         int port;
         // ¶Ë¿Ú
@@ -36,7 +35,7 @@ struct GetListResponse {
     };
     std::vector<ListItem> items;
 };
-SERIALIZER4(GetListResponse::ListItem, id, length, addr, port);
+SERIALIZER3(GetListResponse::ListItem, id, addr, port);
 SERIALIZER1(GetListResponse, items);
 
 

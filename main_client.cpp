@@ -16,7 +16,7 @@ using namespace std;
 class InteractiveClient {
     thread _receive_thread;
     atomic<bool> _stop_receiving = false;
-    bool _connected = false;
+    atomic<bool> _connected = false;
     SOCKET _socket;
 
     template<typename T>
@@ -31,6 +31,7 @@ class InteractiveClient {
     }
 
     void on_received(Opcode op, vector<char> received) {
+        printf("SERVER RESPONSE RECEIVED\n");
         BinaryReader reader((uint8_t*)received.data(), received.size());
         switch (op) {
             case Opcode::GET_TIME: {
@@ -48,8 +49,39 @@ class InteractiveClient {
                 GetNameResponse resp;
                 reader.read(resp);
 
-                printf("name: %s", resp.name.c_str());
+                printf("name: %s\n", resp.name.c_str());
                 break;
+            }
+
+            case Opcode::GET_LIST: {
+                GetListResponse resp;
+                reader.read(resp);
+
+                printf("server connection list:\n");
+                for (auto& item : resp.items) {
+                    printf("id=%d, addr=%s, port=%d\n", item.id, item.addr.c_str(), item.port);
+                }
+                break;
+            }
+
+            case Opcode::RECV_MESSAGE: {
+                ReceivedMessage recv;
+                reader.read(recv);
+
+                printf("message from another client:\n");
+                printf("%s\n", recv.str.c_str());
+                break;
+            }
+
+            case Opcode::SEND_MESSAGE: {
+                SendMessageResponse resp;
+                reader.read(resp);
+                printf("send %s\n", resp.is_sent ? "ok" : "failed");
+                break;
+            }
+
+            default: {
+                printf("UNEXPECTED RESPONSE\n");
             }
         }
     }
@@ -60,7 +92,7 @@ class InteractiveClient {
         char recv_buf[RECV_BUF_SIZE];
         while (!_stop_receiving) {
             int amt = recv(_socket, recv_buf, RECV_BUF_SIZE, 0);
-            if (amt == 0) {
+            if (amt == -1) {
                 break;
             }
             size_t cur = buffer.size();
@@ -88,7 +120,8 @@ class InteractiveClient {
                 }
             }
         }
-        printf("接收线程退出");
+        printf("接收线程退出\n");
+        _connected = false;
     }
 
 public:
@@ -159,6 +192,7 @@ public:
         _stop_receiving = true;
         _receive_thread.join();
         _stop_receiving = false;
+        _connected = false;
     }
 
     void get_time() {
@@ -167,6 +201,23 @@ public:
 
     void get_name() {
         send_request(Opcode::GET_NAME, GetNameRequest());
+    }
+
+    void get_list() {
+        send_request(Opcode::GET_LIST, GetListRequest());
+    }
+
+    void send_message() {
+        SendMessageRequest req;
+        int id;
+        string msg;
+        printf("Receiver? (connection id)\n");
+        cin >> id;
+        printf("Message?\n");
+        cin >> msg;
+        req.id = id;
+        req.str = move(msg);
+        send_request(Opcode::SEND_MESSAGE, req);
     }
 };
 
@@ -190,12 +241,20 @@ int main() {
     register_action("disconnect server", [&]() { client.disconnect_server(); });
     register_action("get server time", [&]() { client.get_time(); });
     register_action("get server name", [&]() { client.get_name(); });
+    register_action("list connection", [&]() { client.get_list(); });
+    register_action("send message", [&]() { client.send_message(); });
 
     while (true) {
-        printf("Menu\n");
+        char menu_buf[1024] = { 0 };
+        char* p = menu_buf;
+        p += sprintf(p, "\n");
+        p += sprintf(p, "=============================\n");
+        p += sprintf(p, "Menu\n");
         for (auto [op, action] : actions) {
-            printf("%d. %s\n", op, action.description.c_str());
+            p += sprintf(p, "%d. %s\n", op, action.description.c_str());
         }
+        p += sprintf(p, "=============================\n");
+        printf("%s", menu_buf);
 
         int op = -1;
         cin >> op;

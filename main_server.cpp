@@ -125,7 +125,6 @@ GetListResponse handle_request(Server* server, GetListRequest req)
         int len = sizeof(sockAddr);
         getpeername(client.socket, (struct sockaddr*) & sockAddr, &len);//得到远程IP地址和端口号  注意函数参数1：此处是接受连接                                                                                                                                                                                  //socket
         item.addr = inet_ntoa(sockAddr.sin_addr);//IP 
-        item.length = item.addr.length();
         item.port = sockAddr.sin_port;
         response.items.push_back(item);
     }
@@ -137,14 +136,15 @@ SendMessageResponse handle_request(Server* server, SendMessageRequest req)
     ReceivedMessage recv;
     SendMessageResponse resp;
 
-    if (server->hashmap.find(req.id) != server->hashmap.end())
+    if (server->hashmap.find(req.id) == server->hashmap.end())
     {
         resp.is_sent = false;
         return resp;
     }
     resp.is_sent = true;
-    recv.str = std::move(req.str);
+
     SOCKET socket = server->hashmap.at(req.id).socket;
+    recv.str = std::move(req.str);
     send_to_user(socket, Opcode::RECV_MESSAGE, move(recv));
     return resp;
 }
@@ -167,18 +167,18 @@ void thread_entry(Server* server, SOCKET socket)
         while (tot_size < sizeof(int))
         {
             int size = recv(socket, (char*)buffer + tot_size, sizeof(int) - tot_size, 0);
-            if (size == 0)
+            if (size == -1)
             {
                 cout << "客户端关闭" << endl;
                 return;
             }
             tot_size += size;
         }
-        int* size = static_cast<int*>((void*)buffer);
-        while (tot_size < *size)
+        int size = *(int*)buffer;
+        while (tot_size < size)
         {
-            int tmp_size = recv(socket, (char*)buffer + tot_size, *size - tot_size, 0);
-            if (tmp_size == 0)
+            int tmp_size = recv(socket, (char*)buffer + tot_size, size - tot_size, 0);
+            if (tmp_size == -1)
             {
                 cout << "客户端关闭" << endl;
                 return;

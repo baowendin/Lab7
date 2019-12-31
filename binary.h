@@ -9,11 +9,15 @@ class BinaryReader;
 
 // 如果要支持新类型，请进行偏特化（下方）
 template<typename T>
-struct Serializer {
-    static_assert("No specialization of Serializer<T> provided");
-    void serialize(BinaryWriter& bw, const T& t) {}
-    void deserialize(BinaryReader& br, T& t) {}
-};
+struct Serializer;
+
+template <class T, std::size_t = sizeof(T)>
+std::true_type is_complete_impl(T*);
+
+std::false_type is_complete_impl(...);
+
+template <class T>
+using is_complete = decltype(is_complete_impl(std::declval<T*>()));
 
 // 二进制写入器
 // 注意：支持基础类型、可序列化（实现了Serializer<T>）类型的直接写入
@@ -33,7 +37,7 @@ public:
     BinaryWriter(uint8_t* buffer, int size) : buffer(buffer), size(size) {};
 
     // 基础类型
-    template<typename T, std::enable_if_t<std::is_trivially_copyable<T>::value, bool>>
+    template<typename T, std::enable_if_t<!is_complete<Serializer<T>>::value && std::is_trivially_copyable<T>::value, int> = 0>
     void write(const T& x) {
         assert_enough(sizeof(T));
         *(T*)(buffer + head) = x;
@@ -47,7 +51,7 @@ public:
     }
 
     // 可序列化类型
-    template<typename T, std::size_t = sizeof(Serializer<T>)>
+    template<typename T, std::enable_if_t<is_complete<Serializer<T>>::value, int> = 0>
     void write(const T& t) {
         Serializer<T>().serialize(*this, t);
     }
@@ -57,6 +61,7 @@ public:
         return head;
     }
 };
+
 
 // 二进制读取器
 // 注意：支持基础类型、可序列化（实现了Serializer<T>）类型的直接读取
@@ -76,7 +81,7 @@ public:
     BinaryReader(uint8_t* buffer, int size) : buffer(buffer), size(size) {};
 
     // 基础类型
-    template<typename T, std::enable_if_t<std::is_trivially_copyable<T>::value, bool>>
+    template<typename T, std::enable_if_t<!is_complete<Serializer<T>>::value && std::is_trivially_copyable<T>::value, int> = 0>
     void read(T& x) {
         assert_enough(sizeof(T));
         x = *(T*)(buffer + head);
@@ -90,7 +95,7 @@ public:
     }
 
     // 可序列化类型
-    template<typename T, std::size_t = sizeof(Serializer<T>)>
+    template<typename T, std::enable_if_t<is_complete<Serializer<T>>::value, int> = 0>
     void read(T& t) {
         Serializer<T>().deserialize(*this, t);
     }
@@ -135,7 +140,7 @@ struct Serializer<std::vector<T>> {
         br.read(len);
         x.resize(len);
         for (auto& elem : x) {
-            br.read(x);
+            br.read(elem);
         }
     }
 };
@@ -145,7 +150,7 @@ struct Serializer<std::vector<T>> {
 // looks evil, but could save boilerplate code
 #define SERIALIZER(type, ser, deser) template<> struct Serializer<type> { \
     void serialize(BinaryWriter& bw, const type& obj) { do ser while(0); } \
-    void deserialize(BinaryReader& br, const type& obj) { do deser while (0); } \
+    void deserialize(BinaryReader& br, type& obj) { do deser while (0); } \
 };
 
 #define FIELD0()

@@ -6,7 +6,6 @@ set(src
     protocol
     dto
 	binary
-	cpp.hint
 )
 
 set(src_client
