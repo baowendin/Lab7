@@ -20,7 +20,7 @@ struct Client
 
 class Server;
 
-void thread_entry(Server* server, SOCKET socket);
+void thread_entry(Server* server, SOCKET socket,int count);
 
 class Server
 {
@@ -58,10 +58,10 @@ public:
         {
             count++;
             SOCKET new_client_socket = accept(server_socket, NULL, NULL);
-            cout << "服务器出来接客啦！这是第" << count << "个!" << endl;
+            cout << "服务器收到连接,编号为" << count << "!" << endl;
             Client temp_client;
             temp_client.socket = new_client_socket;
-            temp_client.thread = new thread(thread_entry, this, new_client_socket);
+            temp_client.thread = new thread(thread_entry, this, new_client_socket,count);
             hashmap.insert(pair<int, Client>(count, temp_client));
         }
     }
@@ -104,7 +104,7 @@ void send_to_user(SOCKET socket, Opcode op, T data)
 
 GetNameResponse handle_request(Server* server, GetNameRequest req) {
     GetNameResponse response;
-    response.name = "kami";
+    response.name = "Server";
     return response;
 }
 
@@ -156,7 +156,7 @@ SendMessageResponse handle_request(Server* server, SendMessageRequest req)
         writer.write(resp); \
 		break; }
 
-void thread_entry(Server* server, SOCKET socket)
+void thread_entry(Server* server, SOCKET socket,int count)
 {
     uint8_t buffer[10000];
     while (1)
@@ -169,7 +169,8 @@ void thread_entry(Server* server, SOCKET socket)
             int size = recv(socket, (char*)buffer + tot_size, sizeof(int) - tot_size, 0);
             if (size == -1)
             {
-                cout << "客户端关闭" << endl;
+                cout << "客户端关闭,编号为" <<count<< endl;
+                server->hashmap.erase(count);
                 return;
             }
             tot_size += size;
@@ -180,7 +181,8 @@ void thread_entry(Server* server, SOCKET socket)
             int tmp_size = recv(socket, (char*)buffer + tot_size, size - tot_size, 0);
             if (tmp_size == -1)
             {
-                cout << "客户端关闭" << endl;
+                cout << "客户端关闭,编号为" <<count<< endl;
+                server->hashmap.erase(count);
                 return;
             }
             tot_size += tmp_size;
