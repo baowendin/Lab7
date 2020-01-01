@@ -103,12 +103,14 @@ void send_to_user(SOCKET socket, Opcode op, T data)
 }
 
 GetNameResponse handle_request(Server* server, GetNameRequest req) {
+    cout << "类型为获取名字" << endl;
     GetNameResponse response;
     response.name = "Server";
     return response;
 }
 
 GetTimeResponse handle_request(Server* server, GetTimeRequest req) {
+    cout << "类型为获取时间" << endl;
     GetTimeResponse response;
     response.time = time(0);
     return response;
@@ -116,6 +118,7 @@ GetTimeResponse handle_request(Server* server, GetTimeRequest req) {
 
 GetListResponse handle_request(Server* server, GetListRequest req)
 {
+    cout << "类型为获取列表" << endl;
     GetListResponse response;
     for (auto& [id, client] : server->hashmap)
     {
@@ -125,7 +128,7 @@ GetListResponse handle_request(Server* server, GetListRequest req)
         int len = sizeof(sockAddr);
         getpeername(client.socket, (struct sockaddr*) & sockAddr, &len);//得到远程IP地址和端口号  注意函数参数1：此处是接受连接                                                                                                                                                                                  //socket
         item.addr = inet_ntoa(sockAddr.sin_addr);//IP 
-        item.port = sockAddr.sin_port;
+        item.port = htons(sockAddr.sin_port);
         response.items.push_back(item);
     }
     return response;
@@ -133,6 +136,7 @@ GetListResponse handle_request(Server* server, GetListRequest req)
 
 SendMessageResponse handle_request(Server* server, SendMessageRequest req)
 {
+    cout << "类型为发送消息" << endl;
     ReceivedMessage recv;
     SendMessageResponse resp;
 
@@ -161,6 +165,7 @@ void thread_entry(Server* server, SOCKET socket,int count)
     uint8_t buffer[10000];
     while (1)
     {
+        
         // 接收到一个包
         int tot_size = 0;
         while (tot_size < sizeof(int))
@@ -187,7 +192,7 @@ void thread_entry(Server* server, SOCKET socket,int count)
             tot_size += tmp_size;
         }
         auto packet = (Packet*)buffer;
-        
+        cout << "收到来自客户端" << count << "的请求:";
         // 用于解析协议（类似流）
         BinaryReader reader(packet->content, packet->total_size);
 
