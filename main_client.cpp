@@ -87,33 +87,30 @@ class InteractiveClient {
     }
 
     void receive_entry() {
-        vector<char> buffer;
+        vector<char> buffer; // 总缓冲区
         const int RECV_BUF_SIZE = 2048;
-        char recv_buf[RECV_BUF_SIZE];
+        char recv_buf[RECV_BUF_SIZE]; // 调用系统recv的缓冲区
         while (!_stop_receiving) {
             int amt = recv(_socket, recv_buf, RECV_BUF_SIZE, 0);
-            if (amt == -1) {
-                break;
-            }
+            if (amt == -1) break;
             size_t cur = buffer.size();
-            buffer.resize(cur + amt);
-            memcpy(buffer.data() + cur, recv_buf, amt);
+            buffer.resize(cur + amt); // 扩大总缓冲区
+            memcpy(buffer.data() + cur, recv_buf, amt); // 复制进总缓冲区
 
-            // 可能含有多个包
+            // 可能含有多个包，直到所有包都被消耗
             while (buffer.size() >= Packet::HEADER_SIZE) {
                 auto packet = (Packet*)buffer.data();
                 int total_length = packet->total_size;
                 int content_length = total_length - Packet::HEADER_SIZE;
                 Opcode op = packet->op;
 
+                // 长度>=包头指示的长度，代表这个包已经足够
                 if (buffer.size() >= total_length) {
                     vector<char> received;
                     received.resize(content_length);
-
                     memcpy(received.data(), buffer.data() + Packet::HEADER_SIZE, content_length);
-
                     buffer.erase(buffer.begin(), buffer.begin() + total_length);
-                    on_received(op, move(received));
+                    on_received(op, move(received)); // 处理包内容
                 }
                 else {
                     break;
@@ -235,8 +232,10 @@ void register_action(string description, function<void()> handler) {
 
 int main() {
 
+    // 客户端
     InteractiveClient client;
 
+    // 注册各个操作
     register_action("connect server", [&]() { client.connect_server(); });
     register_action("disconnect server", [&]() { client.disconnect_server(); });
     register_action("get server time", [&]() { client.get_time(); });
@@ -245,6 +244,7 @@ int main() {
     register_action("send message", [&]() { client.send_message(); });
 
     while (true) {
+        // 打印菜单
         char menu_buf[1024] = { 0 };
         char* p = menu_buf;
         p += sprintf(p, "\n");
@@ -260,7 +260,7 @@ int main() {
         cin >> op;
         if (auto iter = actions.find(op); iter != actions.end()) {
             auto [op, action] = *iter;
-            action.handler();
+            action.handler(); // 执行具体的操作
         }
         else {
             printf("this operation \"%d\" is not present\n", op);

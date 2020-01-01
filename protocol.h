@@ -4,19 +4,11 @@
 
 enum class Opcode : int
 {
-    GET_TIME = 1,
-    GET_NAME = 2,
-    GET_LIST = 3,
-    SEND_MESSAGE = 4,
-    RECV_MESSAGE = 8,
-    //REQUSET_TIME = 1,
-    //REQUEST_NAME = 2,
-    //REQUEST_LIST = 3,
-    //REQUSET_MESSAGE = 4,
-    //SEND_TIME = 5,
-    //SENT_NAME = 6,
-    //SEND_LIST = 7,
-    //SEND_MESSAGE = 8
+    GET_TIME = 1, // 请求/响应时间
+    GET_NAME = 2, // 请求/响应名称
+    GET_LIST = 3, // 请求/响应连接列表
+    SEND_MESSAGE = 4, // 请求/响应发送消息
+    RECV_MESSAGE = 8, // 收到消息
 };
 
 struct Packet

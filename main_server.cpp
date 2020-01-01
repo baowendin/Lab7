@@ -58,11 +58,11 @@ public:
         {
             count++;
             SOCKET new_client_socket = accept(server_socket, NULL, NULL);
-            cout << "服务器出来接客啦！这是第" << count << "个!" << endl;
+            cout << "收到连接，id=" << count << endl;
             Client temp_client;
             temp_client.socket = new_client_socket;
             temp_client.thread = new thread(thread_entry, this, new_client_socket);
-            hashmap.insert(pair<int, Client>(count, temp_client));
+            hashmap.insert(pair<int, Client>(count, temp_client)); // 记录到map中（所有连接）
         }
     }
 };
@@ -161,8 +161,7 @@ void thread_entry(Server* server, SOCKET socket)
     uint8_t buffer[10000];
     while (1)
     {
-        // TODO: make this better (see main_client.cpp)
-        // TODO: 包格式有改动
+        // 接收到一个包
         int tot_size = 0;
         while (tot_size < sizeof(int))
         {
@@ -186,11 +185,13 @@ void thread_entry(Server* server, SOCKET socket)
             tot_size += tmp_size;
         }
         auto packet = (Packet*)buffer;
+        
+        // 用于解析协议（类似流）
         BinaryReader reader(packet->content, packet->total_size);
 
-        uint8_t resp_buffer[2048];
+        uint8_t resp_buffer[2048]; // 响应缓冲区
         BinaryWriter writer(resp_buffer, 2048);
-        writer.write((int)0); // 注意：等会再写回长度
+        writer.write((int)0); // 注意：等会再写回包长度，因为现在还不知道
         writer.write((int)packet->op);
 
         // 具体的请求处理在上面handle_request
