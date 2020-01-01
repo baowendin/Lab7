@@ -2,6 +2,8 @@
 #include <stdint.h>
 #include <winsock.h>
 
+// 包协议
+
 enum class Opcode : int
 {
     GET_TIME = 1, // 请求/响应时间

@@ -3,6 +3,9 @@
 #include <vector>
 #include <winsock.h>
 
+// 应用层协议
+// 定义了各种请求、响应的具体内容及其序列化方式
+
 struct GetTimeRequest {};
 SERIALIZER0(GetTimeRequest);
 

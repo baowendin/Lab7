@@ -4,6 +4,8 @@
 #include <string>
 #include <vector>
 
+// 自制序列化工具
+
 class BinaryWriter;
 class BinaryReader;
 
