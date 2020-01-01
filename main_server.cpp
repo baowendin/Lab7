@@ -20,7 +20,7 @@ struct Client
 
 class Server;
 
-void thread_entry(Server* server, SOCKET socket);
+void thread_entry(Server* server, SOCKET socket,int count);
 
 class Server
 {
@@ -58,11 +58,11 @@ public:
         {
             count++;
             SOCKET new_client_socket = accept(server_socket, NULL, NULL);
-            cout << "收到连接，id=" << count << endl;
+            cout << "服务器收到连接,编号为" << count << "!" << endl;
             Client temp_client;
             temp_client.socket = new_client_socket;
-            temp_client.thread = new thread(thread_entry, this, new_client_socket);
-            hashmap.insert(pair<int, Client>(count, temp_client)); // 记录到map中（所有连接）
+            temp_client.thread = new thread(thread_entry, this, new_client_socket,count);
+            hashmap.insert(pair<int, Client>(count, temp_client));
         }
     }
 };
@@ -103,12 +103,14 @@ void send_to_user(SOCKET socket, Opcode op, T data)
 }
 
 GetNameResponse handle_request(Server* server, GetNameRequest req) {
+    cout << "类型为获取名字" << endl;
     GetNameResponse response;
-    response.name = "kami";
+    response.name = "Server";
     return response;
 }
 
 GetTimeResponse handle_request(Server* server, GetTimeRequest req) {
+    cout << "类型为获取时间" << endl;
     GetTimeResponse response;
     response.time = time(0);
     return response;
@@ -116,6 +118,7 @@ GetTimeResponse handle_request(Server* server, GetTimeRequest req) {
 
 GetListResponse handle_request(Server* server, GetListRequest req)
 {
+    cout << "类型为获取列表" << endl;
     GetListResponse response;
     for (auto& [id, client] : server->hashmap)
     {
@@ -125,7 +128,7 @@ GetListResponse handle_request(Server* server, GetListRequest req)
         int len = sizeof(sockAddr);
         getpeername(client.socket, (struct sockaddr*) & sockAddr, &len);//得到远程IP地址和端口号  注意函数参数1：此处是接受连接                                                                                                                                                                                  //socket
         item.addr = inet_ntoa(sockAddr.sin_addr);//IP 
-        item.port = sockAddr.sin_port;
+        item.port = htons(sockAddr.sin_port);
         response.items.push_back(item);
     }
     return response;
@@ -133,6 +136,7 @@ GetListResponse handle_request(Server* server, GetListRequest req)
 
 SendMessageResponse handle_request(Server* server, SendMessageRequest req)
 {
+    cout << "类型为发送消息" << endl;
     ReceivedMessage recv;
     SendMessageResponse resp;
 
@@ -156,11 +160,12 @@ SendMessageResponse handle_request(Server* server, SendMessageRequest req)
         writer.write(resp); \
 		break; }
 
-void thread_entry(Server* server, SOCKET socket)
+void thread_entry(Server* server, SOCKET socket,int count)
 {
     uint8_t buffer[10000];
     while (1)
     {
+        
         // 接收到一个包
         int tot_size = 0;
         while (tot_size < sizeof(int))
@@ -168,7 +173,8 @@ void thread_entry(Server* server, SOCKET socket)
             int size = recv(socket, (char*)buffer + tot_size, sizeof(int) - tot_size, 0);
             if (size == -1)
             {
-                cout << "客户端关闭" << endl;
+                cout << "客户端关闭,编号为" <<count<< endl;
+                server->hashmap.erase(count);
                 return;
             }
             tot_size += size;
@@ -179,13 +185,14 @@ void thread_entry(Server* server, SOCKET socket)
             int tmp_size = recv(socket, (char*)buffer + tot_size, size - tot_size, 0);
             if (tmp_size == -1)
             {
-                cout << "客户端关闭" << endl;
+                cout << "客户端关闭,编号为" <<count<< endl;
+                server->hashmap.erase(count);
                 return;
             }
             tot_size += tmp_size;
         }
         auto packet = (Packet*)buffer;
-        
+        cout << "收到来自客户端" << count << "的请求:";
         // 用于解析协议（类似流）
         BinaryReader reader(packet->content, packet->total_size);
 
